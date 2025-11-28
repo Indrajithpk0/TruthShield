@@ -7,11 +7,10 @@ function analyzeNews() {
         return;
     }
 
-    // Flags
     let score = 0;
     let redFlags = [];
 
-    // 1️⃣ Impossible science claims
+    // 1️⃣ Impossible / pseudo-scientific claims
     const impossiblePatterns = [
         /emit.*wifi/i,
         /glow(s)? in the dark/i,
@@ -20,7 +19,9 @@ function analyzeNews() {
         /magically/i,
         /teleport/i,
         /time travel/i,
-        /sunlight.*creates/i
+        /sunlight.*creates/i,
+        /bio-?fluorescent/i,
+        /mixed.*with.*algae/i
     ];
     impossiblePatterns.forEach(pattern => {
         if (pattern.test(text)) {
@@ -29,10 +30,11 @@ function analyzeNews() {
         }
     });
 
-    // 2️⃣ Missing source or vague authority
+    // 2️⃣ Missing trusted source (news agency, govt link, etc.)
     const trustedSources = [
-        "Reuters", "BBC", "The Hindu", "Indian Express",
-        "Times of India", "NDTV", "Press Information Bureau",
+        "Reuters", "BBC", "The Hindu", "Indian Express", "Times of India",
+        "NDTV", "Hindustan Times", "Press Information Bureau", "PIB",
+        "All India Radio", "Economic Times"
     ];
     const hasTrustedSource = trustedSources.some(src => text.includes(src));
     if (!hasTrustedSource) {
@@ -40,14 +42,16 @@ function analyzeNews() {
         redFlags.push("No trusted or verifiable source mentioned");
     }
 
-    // 3️⃣ Sensational keywords
+    // 3️⃣ Sensational language (common in fake viral posts)
     const sensationalWords = [
         /shocking/i,
         /unbelievable/i,
         /miracle/i,
         /breaking news/i,
         /never seen before/i,
-        /secretly/i
+        /secretly/i,
+        /viral/i,
+        /explosive/i
     ];
     sensationalWords.forEach(pattern => {
         if (pattern.test(text)) {
@@ -56,32 +60,34 @@ function analyzeNews() {
         }
     });
 
-    // 4️⃣ Fake institutes or vague organizations
-    const fakeInstitutePatterns = [
+    // 4️⃣ Fake-sounding institutes
+    const fakeInstitutes = [
         /International Space Biology Institute/i,
         /Global Federation of Truth/i,
-        /World Science Council/i
+        /World Science Council/i,
+        /Universal Agriculture Research Board/i,
+        /National Tomato Innovation Center/i
     ];
-    fakeInstitutePatterns.forEach(pattern => {
+    fakeInstitutes.forEach(pattern => {
         if (pattern.test(text)) {
             score += 25;
-            redFlags.push("Organisation sounds fake or unverifiable");
+            redFlags.push("Suspicious or unverifiable organisation name");
         }
     });
 
-    // 5️⃣ Missing date or timeline
-    if (!/\d{4}/.test(text) && !/(today|yesterday|last week|this year)/i.test(text)) {
+    // 5️⃣ Check for lack of timeline or date
+    if (!/\d{4}/.test(text) && !/(today|yesterday|last week|this year|recently)/i.test(text)) {
         score += 10;
-        redFlags.push("No date or timeline");
+        redFlags.push("No verifiable date or timeline included");
     }
 
-    // 6️⃣ Too "perfect" structured but unrealistic
+    // 6️⃣ Very short structured text could be suspicious
     if (text.split(" ").length < 50) {
         score += 5;
-        redFlags.push("Short structured text can be suspicious");
+        redFlags.push("Short structured text (may be artificially generated)");
     }
 
-    // Final decision
+    // 📌 FINAL DECISION BASED ON SCORE
     if (score >= 40) {
         result.innerHTML = `
             ❌ <b>This news is likely FAKE.</b><br><br>
